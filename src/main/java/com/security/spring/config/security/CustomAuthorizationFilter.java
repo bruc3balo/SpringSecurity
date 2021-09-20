@@ -1,4 +1,4 @@
-package com.security.spring.security;
+package com.security.spring.config.security;
 
 import com.security.spring.utils.TokenHelper;
 import lombok.extern.slf4j.Slf4j;
