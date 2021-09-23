@@ -47,7 +47,7 @@ public class Models {
         private boolean deleted;
 
         @ManyToMany(fetch = FetchType.EAGER) //anytime load user, load a role
-        private Collection<AppRole> roles = new ArrayList<>();
+        private Set<AppRole> roles = new LinkedHashSet<>();
 
         public AppUser() {
 
@@ -63,7 +63,7 @@ public class Models {
         }
 
 
-        public AppUser(String name, String username, String emailAddress, String password, boolean deleted, Collection<AppRole> roles) {
+        public AppUser(String name, String username, String emailAddress, String password, boolean deleted, Set<AppRole> roles) {
             this.name = name;
             this.username = username;
             this.emailAddress = emailAddress;
@@ -91,7 +91,7 @@ public class Models {
 
         @ManyToMany(fetch = FetchType.EAGER)
         @Column(name = "permissions")
-        private Set<Permissions> allowedPermissions = new HashSet<>();
+        private Set<Permissions> allowedPermissions = new LinkedHashSet<>();
 
         public AppRole() {
 
@@ -103,9 +103,9 @@ public class Models {
 
 
 
-        private Collection<GrantedAuthority> getGrantedAllowedPermissions() {
+        /*public Set<GrantedAuthority> getGrantedAllowedPermissions() {
             return allowedPermissions.stream().map(permissions -> new SimpleGrantedAuthority(permissions.getName())).collect(Collectors.toSet());
-        }
+        }*/
     }
 
 

@@ -19,6 +19,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,7 +33,7 @@ import static com.security.spring.utils.DataOps.filterRequestParams;
 public class UserController {
 
     @GetMapping("/all")
-    @PreAuthorize("hasAuthority('user:delete')")
+    @PreAuthorize("hasAuthority('user:read')")
     public ResponseEntity<?> getAllUsers(HttpServletRequest request,
                                          @RequestParam(value = "name", required = false) String name,
                                          @RequestParam(value = "username", required = false) String username,
@@ -40,9 +42,8 @@ public class UserController {
         log.info("Get users");
 
 
-
         try {
-            List<String> unknownParams = filterRequestParams(request, Arrays.asList("name", "id"));
+            List<String> unknownParams = filterRequestParams(request, Arrays.asList("name", "id","username"));
             if (!unknownParams.isEmpty()) {
                 // get all errors
                 String apiDesc = unknownParams.stream().map(x -> "'" + x.toUpperCase() + "'").collect(Collectors.joining(", ")) + " : Not valid Parameters";
@@ -51,6 +52,9 @@ public class UserController {
             }
 
             Page<Models.AppUser> userList = dataService.getAllUsers(new UserPredicate(id, name, username), PageRequest.of(0, Integer.MAX_VALUE));
+
+            userList.forEach(u -> u.getRoles().forEach(r -> r.setAllowedPermissions(r.getAllowedPermissions().stream().sorted(Comparator.comparing(Models.Permissions::getId)).collect(Collectors.toCollection(LinkedHashSet::new)))));
+
 
             JsonResponse response = JsonSetSuccessResponse.setResponse(ApiCode.SUCCESS.getCode(), ApiCode.SUCCESS.getDescription(), null, userList.getContent());
             return new ResponseEntity<>(response, HttpStatus.OK);
@@ -145,9 +149,9 @@ public class UserController {
     @DeleteMapping(value = "delete")
     @PreAuthorize("hasAuthority('user:delete')")
     public ResponseEntity<?> deleteStudent(HttpServletRequest request,
-                              @RequestParam(value = "name", required = false) String name,
-                              @RequestParam(value = "username", required = false) String username,
-                              @RequestParam(value = "id", required = false) Long id) {
+                                           @RequestParam(value = "name", required = false) String name,
+                                           @RequestParam(value = "username", required = false) String username,
+                                           @RequestParam(value = "id", required = false) Long id) {
         try {
             Models.AppUser userToBeDeleted = dataService.getAllUsers(new UserPredicate(id, name, username), PageRequest.of(0, 1)).getContent().get(0);
             userToBeDeleted.setId(userToBeDeleted.getId());
@@ -162,7 +166,6 @@ public class UserController {
             return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
 
 }

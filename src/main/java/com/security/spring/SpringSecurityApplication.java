@@ -1,16 +1,8 @@
 package com.security.spring;
 
-import com.security.spring.api.domain.Models.AppRole;
-import com.security.spring.api.domain.Models.AppUser;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-
-import java.util.ArrayList;
-
-import static com.security.spring.global.GlobalService.dataService;
 
 @SpringBootApplication
 @EnableJpaRepositories

@@ -1,5 +1,6 @@
 package com.security.spring.config.jwt;
 
+import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.security.spring.api.domain.Models;
 import com.security.spring.api.model.UsernameAndPasswordAuthenticationRequest;
 import com.security.spring.global.GlobalService;
@@ -23,6 +24,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -54,13 +56,13 @@ public class TokenHelper {
     public static void successfulAuthenticationAuthFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, Authentication authResult) throws IOException {
         response.setContentType(APPLICATION_JSON_VALUE);
 
-        System.out.println("Authorities are "+authResult.getAuthorities());
+        System.out.println("Authorities are " + authResult.getAuthorities());
 
         String accessToken = JWT.create().withSubject(authResult.getName()).withExpiresAt(accessTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("authorities", authResult.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())).sign(myAlgorithm);
 
         String bearerToken = "Bearer " + accessToken;
 
-        response.addHeader("Authorization",bearerToken );
+        response.addHeader("Authorization", bearerToken);
 
         Map<String, String> tokens = new HashMap<>();
         tokens.put("access_token", bearerToken);
@@ -68,7 +70,7 @@ public class TokenHelper {
         new ObjectMapper().writeValue(response.getOutputStream(), tokens);
     }
 
-    public static void JwtTokenVerify(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    public static void JwtTokenVerify(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException, AccessDeniedException {
         response.setContentType(APPLICATION_JSON_VALUE);
         String authorizationHeader = request.getHeader(jwtAuthHeader);
 
@@ -82,7 +84,10 @@ public class TokenHelper {
 
         try {
             JWTVerifier verifier = JWT.require(myAlgorithm).build();
+            log.info("I verify a token");
+
             DecodedJWT decodedJWT = verifier.verify(token);
+
 
             String username = decodedJWT.getSubject();
             String[] roles = decodedJWT.getClaim("authorities").asArray(String.class);
@@ -93,12 +98,23 @@ public class TokenHelper {
             UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username, null, authorities);
 
             SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-        } catch (JwtException e) {
-            throw new IllegalStateException("Token cannot be trusted " + token);
+
+            filterChain.doFilter(request, response); //pass on to next filter
+
+        } catch (TokenExpiredException | JwtException | AccessDeniedException e) {
+            failedJwtVerify(response, e);
         }
 
-        filterChain.doFilter(request, response); //pass on to next filter
+    }
 
+
+    public static void failedJwtVerify(HttpServletResponse response, Exception e) throws IOException {
+
+        response.setStatus(FORBIDDEN.value());
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", e.getMessage());
+        new ObjectMapper().writeValue(response.getOutputStream(), error);
     }
 
     public static void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
