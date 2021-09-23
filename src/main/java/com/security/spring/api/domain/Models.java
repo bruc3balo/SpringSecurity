@@ -53,9 +53,9 @@ public class Models {
 
         }
 
-        public AppUser(Long id, String name) {
+        public AppUser(Long id, String username) {
             this.id = id;
-            this.name = name;
+            this.username = username;
         }
 
         public AppUser(String name) {
@@ -108,7 +108,6 @@ public class Models {
         }*/
     }
 
-
     @Entity
     @Table(name = "permissions")
     @Getter
@@ -131,7 +130,6 @@ public class Models {
 
 
     }
-
 
 }
 

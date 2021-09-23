@@ -7,6 +7,7 @@ import com.security.spring.global.GlobalVariables;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -29,8 +30,7 @@ import static com.security.spring.global.GlobalService.userDetailsService;
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final String[] WHITELIST = new String[]{
-            GlobalVariables.contextPath + "/login",
-            GlobalVariables.contextPath + "/user/token/refresh/**",
+            GlobalVariables.contextPath + "/user/all",
             "/",
             "html",
             "index",
@@ -56,11 +56,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .addFilter(new JWTUsernameAndPasswordAuthenticationFilter(authenticationManager()))
-                .addFilterAfter(new JwtTokenVerifier(), JWTUsernameAndPasswordAuthenticationFilter.class)
-                .authorizeRequests()
-                .antMatchers(WHITELIST).permitAll()
-                .anyRequest()
-                .authenticated(); //allow anyone authenticated
+                .addFilterAfter(new JwtTokenVerifier(), JWTUsernameAndPasswordAuthenticationFilter.class);
+
+        //todo whitelist
     }
 
     @Override

@@ -3,8 +3,10 @@ package com.security.spring.api.controller;
 import com.security.spring.api.domain.Models;
 import com.security.spring.api.model.RoleToUserForm;
 import com.security.spring.api.specification.UserPredicate;
-import com.security.spring.config.jwt.TokenHelper;
-import com.security.spring.utils.*;
+import com.security.spring.utils.ApiCode;
+import com.security.spring.utils.JsonResponse;
+import com.security.spring.utils.JsonSetErrorResponse;
+import com.security.spring.utils.JsonSetSuccessResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,8 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -43,7 +43,7 @@ public class UserController {
 
 
         try {
-            List<String> unknownParams = filterRequestParams(request, Arrays.asList("name", "id","username"));
+            List<String> unknownParams = filterRequestParams(request, Arrays.asList("name", "id", "username"));
             if (!unknownParams.isEmpty()) {
                 // get all errors
                 String apiDesc = unknownParams.stream().map(x -> "'" + x.toUpperCase() + "'").collect(Collectors.joining(", ")) + " : Not valid Parameters";
@@ -67,7 +67,7 @@ public class UserController {
     }
 
     @PostMapping("/save")
-    @PreAuthorize("hasAuthority('user:write')")
+    //@PreAuthorize("hasAuthority('user:write')")
     public ResponseEntity<?> saveUser(@RequestBody Models.AppUser appUser) {
         URI uri = URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/user/save").toUriString());
         log.info("uri saveuser ::: {}", uri);
@@ -141,10 +141,7 @@ public class UserController {
 
     }
 
-    @GetMapping(value = {"/token/refresh"})
-    public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        TokenHelper.refreshToken(request, response);
-    }
+
 
     @DeleteMapping(value = "delete")
     @PreAuthorize("hasAuthority('user:delete')")

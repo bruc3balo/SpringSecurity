@@ -35,7 +35,7 @@ public class GlobalVariables {
 
     @Autowired
     public void setRefreshTokenTIme() {
-        GlobalVariables.refreshTokenTIme = new Date(System.currentTimeMillis() + 30 * 60 * 1000);
+        GlobalVariables.refreshTokenTIme = new Date(System.currentTimeMillis() + 10 * 60 * 1000 * 10);
     }
 
     @Value("${server.servlet.context-path}")

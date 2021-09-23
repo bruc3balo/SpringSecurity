@@ -28,7 +28,7 @@ public class JWTUsernameAndPasswordAuthenticationFilter extends UsernamePassword
 
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        successfulAuthenticationAuthFilter(request, response, chain, authResult);
+        accessToken(request, response, authResult);
     }
 
     @Override
