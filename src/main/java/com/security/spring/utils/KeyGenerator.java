@@ -7,8 +7,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static com.security.spring.utils.ConvertDate.formatDate;
-
 
 public class KeyGenerator {
     public static final String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -48,17 +46,17 @@ public class KeyGenerator {
 
     public static String getRandomMask() {
         KeyGenerator keyGenerator = new KeyGenerator(4, ThreadLocalRandom.current());
-        return "N" + (keyGenerator.nextString() + formatDate(new Date(), "dd") + keyGenerator.nextString());
+        return "N" + (keyGenerator.nextString() + ConvertDate.formatDate(new Date(), "dd") + keyGenerator.nextString());
     }
 
     public static String referenceNumber() {
         KeyGenerator keyGenerator = new KeyGenerator(4, ThreadLocalRandom.current());
-        return (keyGenerator.nextString().toUpperCase() + keyGenerator.nextString().toUpperCase() + formatDate(new Date(), "YYYYMMdd"));
+        return (keyGenerator.nextString().toUpperCase() + keyGenerator.nextString().toUpperCase() + ConvertDate.formatDate(new Date(), "YYYYMMdd"));
     }
 
     public static String randomNumber() {
         KeyGenerator keyGenerator = new KeyGenerator(3, ThreadLocalRandom.current(), digits);
-        return (keyGenerator.nextString().toUpperCase() + formatDate(new Date(), "dd") + keyGenerator.nextString().toUpperCase());
+        return (keyGenerator.nextString().toUpperCase() + ConvertDate.formatDate(new Date(), "dd") + keyGenerator.nextString().toUpperCase());
     }
 }
 

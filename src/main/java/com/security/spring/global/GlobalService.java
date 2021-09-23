@@ -3,7 +3,7 @@ package com.security.spring.global;
 import com.security.spring.api.service.DataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -11,7 +11,8 @@ public class GlobalService {
 
     public static DataService dataService;
     public static UserDetailsService userDetailsService;
-    public static BCryptPasswordEncoder passwordEncoder;
+    public static PasswordEncoder passwordEncoder;
+
 
 
     @Autowired
@@ -25,8 +26,8 @@ public class GlobalService {
     }
 
     @Autowired
-    public void setPasswordEncoder() {
-        GlobalService.passwordEncoder = new BCryptPasswordEncoder();
+    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
+        GlobalService.passwordEncoder = passwordEncoder;
     }
 
 

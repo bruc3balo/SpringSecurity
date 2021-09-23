@@ -1,5 +1,8 @@
 package com.security.spring.global;
 
+
+
+import com.security.spring.api.repository.AppPermissionRepo;
 import com.security.spring.api.repository.AppRoleRepo;
 import com.security.spring.api.repository.AppUserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +13,7 @@ public class GlobalRepositories {
 
     public static AppUserRepo userRepo;
     public static AppRoleRepo roleRepo;
+    public static AppPermissionRepo appPermissionRepo;
 
 
     @Autowired
@@ -21,4 +25,8 @@ public class GlobalRepositories {
     public void setAppRoleRepo(AppRoleRepo appRoleRepo) {
         GlobalRepositories.roleRepo = appRoleRepo;
     }
+
+
+    @Autowired
+    public void setAppPermissionRepo(AppPermissionRepo appPermissionRepo) {GlobalRepositories.appPermissionRepo = appPermissionRepo;}
 }

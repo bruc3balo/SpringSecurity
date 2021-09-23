@@ -7,8 +7,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static com.security.spring.utils.ConvertDate.formatDate;
-
 
 public class RandomString {
     public static final String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -61,7 +59,7 @@ public class RandomString {
 
     public static String referenceCode(){
         KeyGenerator keyGenerator=    new KeyGenerator(4, ThreadLocalRandom.current());
-        return (keyGenerator.nextString().toUpperCase() + "-" + keyGenerator.nextString().toUpperCase()+"-"+ formatDate(new Date(), "YYYYMMdd"));
+        return (keyGenerator.nextString().toUpperCase() + "-" + keyGenerator.nextString().toUpperCase()+"-"+ ConvertDate.formatDate(new Date(), "YYYYMMdd"));
     }
 
 }

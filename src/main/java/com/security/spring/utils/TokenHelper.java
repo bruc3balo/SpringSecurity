@@ -1,10 +1,11 @@
 package com.security.spring.utils;
 
+import com.security.spring.api.domain.Models;
+import com.security.spring.global.GlobalService;
+import com.security.spring.global.GlobalVariables;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.security.spring.api.domain.AppRole;
-import com.security.spring.api.domain.AppUser;
 import lombok.extern.slf4j.Slf4j;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,8 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.security.spring.global.GlobalService.dataService;
-import static com.security.spring.global.GlobalVariables.*;
 import static java.util.Arrays.stream;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -42,13 +41,13 @@ public class TokenHelper {
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             try {
                 String refresh_token = authorizationHeader.substring("Bearer ".length());
-                JWTVerifier verifier = JWT.require(myAlgorithm).build();
+                JWTVerifier verifier = JWT.require(GlobalVariables.myAlgorithm).build();
                 DecodedJWT decodedJWT = verifier.verify(refresh_token);
 
                 String username = decodedJWT.getSubject();
-                AppUser user = dataService.getAUser(username);
+                Models.AppUser user = GlobalService.dataService.getAUser(username);
 
-                String access_token = JWT.create().withSubject(user.getUsername()).withExpiresAt(accessTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("roles", user.getRoles().stream().map(AppRole::getName).collect(Collectors.toList())).sign(myAlgorithm);
+                String access_token = JWT.create().withSubject(user.getUsername()).withExpiresAt(GlobalVariables.accessTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("roles", user.getRoles().stream().map(Models.AppRole::getName).collect(Collectors.toList())).sign(GlobalVariables.myAlgorithm);
 
                 Map<String, String> tokens = new HashMap<>();
                 tokens.put("access_token", access_token);
@@ -78,7 +77,7 @@ public class TokenHelper {
             if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
                 try {
                     String token = authorizationHeader.substring("Bearer ".length());
-                    JWTVerifier verifier = JWT.require(myAlgorithm).build();
+                    JWTVerifier verifier = JWT.require(GlobalVariables.myAlgorithm).build();
                     DecodedJWT decodedJWT = verifier.verify(token);
 
                     String username = decodedJWT.getSubject();
@@ -110,8 +109,8 @@ public class TokenHelper {
 
     public static void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, Authentication authResult) throws IOException {
         User user = (User) authResult.getPrincipal();
-        String accessToken = JWT.create().withSubject(user.getUsername()).withExpiresAt(accessTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("roles", user.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())).sign(myAlgorithm);
-        String refreshToken = JWT.create().withSubject(user.getUsername()).withExpiresAt(refreshTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("roles", user.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())).sign(myAlgorithm);
+        String accessToken = JWT.create().withSubject(user.getUsername()).withExpiresAt(GlobalVariables.accessTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("roles", user.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())).sign(GlobalVariables.myAlgorithm);
+        String refreshToken = JWT.create().withSubject(user.getUsername()).withExpiresAt(GlobalVariables.refreshTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("roles", user.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())).sign(GlobalVariables.myAlgorithm);
 
         Map<String, String> tokens = new HashMap<>();
         tokens.put("access_token", accessToken);

@@ -1,7 +1,7 @@
 package com.security.spring;
 
-import com.security.spring.api.domain.AppRole;
-import com.security.spring.api.domain.AppUser;
+import com.security.spring.api.domain.Models.AppRole;
+import com.security.spring.api.domain.Models.AppUser;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

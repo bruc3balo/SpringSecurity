@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface AppRoleRepo extends JpaRepository<Models.AppRole, Long>, JpaSpecificationExecutor<Models.AppRole> {
-    Models.AppRole findByName(String roleName);
+public interface AppPermissionRepo extends JpaRepository<Models.Permissions, Long>, JpaSpecificationExecutor<Models.Permissions> {
+    Models.Permissions findByName(String permissionName);
 }

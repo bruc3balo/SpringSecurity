@@ -1,10 +1,12 @@
 package com.security.spring.utils;
 
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Enumeration;
-import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 
 public class DataOps {
@@ -16,6 +18,11 @@ public class DataOps {
         return list;
     }
 
+
+    public static SimpleGrantedAuthority getGrantedAuthorityRole(String role) {
+        return new SimpleGrantedAuthority(role);
+    }
+
     public static boolean isNumeric(String text) {
         return StringUtils.isNumeric(text);
     }
@@ -25,7 +32,7 @@ public class DataOps {
         return value == null || value.trim().isEmpty() ? null : value.trim();
     }
 
-    public static BigDecimal strToBigDecimal(String value){
+    public static BigDecimal strToBigDecimal(String value) {
         try {
             return (value == null || value.trim().isEmpty() ? new BigDecimal("0") : ((new BigDecimal(value.trim()))));
         } catch (Exception ex) {
@@ -33,12 +40,14 @@ public class DataOps {
         }
     }
 
-    public static Integer strToInteger(String value){
+
+    public static Integer strToInteger(String value) {
         try {
             return (value == null || value.trim().isEmpty() ? null : Integer.valueOf(value.trim()));
-        }
-        catch (Exception ex){
+        } catch (Exception ex) {
             return null;
         }
     }
+
+
 }
