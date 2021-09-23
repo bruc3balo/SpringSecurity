@@ -78,7 +78,7 @@ public class Models {
     @Getter
     @Setter
     @AllArgsConstructor
-    public static class AppRole implements GrantedAuthority {
+    public static class AppRole{
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -103,13 +103,8 @@ public class Models {
 
 
 
-        @Override
-        public String getAuthority() {
-            return name;
-        }
-
-        public Collection<GrantedAuthority> getGrantedAllowedPermissions() {
-            return allowedPermissions.stream().map(permissions -> new SimpleGrantedAuthority(permissions.getAuthority())).collect(Collectors.toSet());
+        private Collection<GrantedAuthority> getGrantedAllowedPermissions() {
+            return allowedPermissions.stream().map(permissions -> new SimpleGrantedAuthority(permissions.getName())).collect(Collectors.toSet());
         }
     }
 
@@ -118,7 +113,7 @@ public class Models {
     @Table(name = "permissions")
     @Getter
     @Setter
-    public static class Permissions implements GrantedAuthority {
+    public static class Permissions{
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
@@ -133,10 +128,7 @@ public class Models {
             this.name = name;
         }
 
-        @Override
-        public String getAuthority() {
-            return name;
-        }
+
 
     }
 
