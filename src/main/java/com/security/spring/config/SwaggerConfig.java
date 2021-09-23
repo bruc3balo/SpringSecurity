@@ -21,7 +21,7 @@ public class SwaggerConfig {
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder().title("Spring Security Title").description("Spring security API Application.")
                 .termsOfServiceUrl("terms url ").contact("Spring Security Team")
-                .license("Apache License Version 1.0").licenseUrl("license url ").version("version here").build();
+                .license("Apache License Version 1.0").licenseUrl("license url").version("version here").build();
     }
 }
 

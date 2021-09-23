@@ -1,5 +1,6 @@
 package com.security.spring.config.jwt;
 
+import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.security.spring.api.domain.Models;
 import com.security.spring.api.model.UsernameAndPasswordAuthenticationRequest;
@@ -9,12 +10,16 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.common.base.Strings;
+import com.security.spring.utils.ApiCode;
+import com.security.spring.utils.JsonResponse;
+import com.security.spring.utils.JsonSetErrorResponse;
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -70,8 +75,15 @@ public class TokenHelper {
         new ObjectMapper().writeValue(response.getOutputStream(), tokens);
     }
 
-    public static void JwtTokenVerify(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException, AccessDeniedException {
+    public static void unsuccessfulAuthenticationAuthFilter(HttpServletResponse response, AuthenticationException failed) throws IOException {
         response.setContentType(APPLICATION_JSON_VALUE);
+        response.setStatus(FORBIDDEN.value());
+        JsonResponse failResponse = JsonSetErrorResponse.setResponse(ApiCode.FAILED.getCode(), failed.getMessage(), "");
+        new ObjectMapper().writeValue(response.getOutputStream(), failResponse);
+    }
+
+    public static void JwtTokenVerify(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
         String authorizationHeader = request.getHeader(jwtAuthHeader);
 
         if (Strings.isNullOrEmpty(authorizationHeader) || !authorizationHeader.startsWith(tokenPrefix)) {
@@ -81,32 +93,21 @@ public class TokenHelper {
 
         String token = authorizationHeader.replace(tokenPrefix, "");
 
+        JWTVerifier verifier = JWT.require(myAlgorithm).build();
+        DecodedJWT decodedJWT = verifier.verify(token);
 
-        try {
-            JWTVerifier verifier = JWT.require(myAlgorithm).build();
-            log.info("I verify a token");
+        String username = decodedJWT.getSubject();
+        String[] roles = decodedJWT.getClaim("authorities").asArray(String.class);
 
-            DecodedJWT decodedJWT = verifier.verify(token);
+        Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        stream(roles).forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
 
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username, null, authorities);
 
-            String username = decodedJWT.getSubject();
-            String[] roles = decodedJWT.getClaim("authorities").asArray(String.class);
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
-            Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
-            stream(roles).forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
-
-            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username, null, authorities);
-
-            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-
-            filterChain.doFilter(request, response); //pass on to next filter
-
-        } catch (TokenExpiredException | JwtException | AccessDeniedException e) {
-            failedJwtVerify(response, e);
-        }
-
+        filterChain.doFilter(request, response); //pass on to next filter
     }
-
 
     public static void failedJwtVerify(HttpServletResponse response, Exception e) throws IOException {
 

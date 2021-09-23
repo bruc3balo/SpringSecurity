@@ -11,9 +11,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class JWTUsernameAndPasswordAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
+import static com.security.spring.config.jwt.TokenHelper.*;
 
-    //todo userservice
+public class JWTUsernameAndPasswordAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
 
@@ -23,11 +23,21 @@ public class JWTUsernameAndPasswordAuthenticationFilter extends UsernamePassword
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        return TokenHelper.attemptAuthenticationAuthFilter(request,response,authenticationManager); //todo get auth manager
+        return attemptAuthenticationAuthFilter(request,response,authenticationManager);
     }
 
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        TokenHelper.successfulAuthenticationAuthFilter(request, response, chain, authResult);
+        successfulAuthenticationAuthFilter(request, response, chain, authResult);
+    }
+
+    @Override
+    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException {
+        unsuccessfulAuthenticationAuthFilter(response,failed);
+    }
+
+    @Override
+    protected boolean requiresAuthentication(HttpServletRequest request, HttpServletResponse response) {
+        return super.requiresAuthentication(request, response);
     }
 }
