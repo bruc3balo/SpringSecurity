@@ -2,8 +2,14 @@ package com.security.spring.api.service;
 
 
 import com.security.spring.api.domain.Models;
+
+import com.security.spring.api.model.NewUserForm;
+import com.security.spring.api.model.RoleCreationForm;
+
+import com.security.spring.api.model.UserUpdateForm;
 import com.security.spring.api.specification.UserPredicate;
-import com.security.spring.global.GlobalRepositories;
+import com.security.spring.config.security.AppRolesEnum;
+import com.security.spring.utils.DataOps;
 import com.sun.jdi.request.DuplicateRequestException;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -15,27 +21,31 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.security.spring.global.GlobalRepositories.appPermissionRepo;
+import static com.security.spring.global.GlobalRepositories.roleRepo;
 import static com.security.spring.global.GlobalRepositories.userRepo;
+import static com.security.spring.global.GlobalService.passwordEncoder;
+import static com.security.spring.utils.DataOps.getNowFormattedFullDate;
 
 @Service
 @Transactional
 @Slf4j
 public class DataServiceImpl implements DataService, UserDetailsService {
 
+
     //User
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
 
-        Models.AppUser appUser = userRepo.findByUsername(username);
+        Models.AppUser appUser = userRepo.findByUsername(username).orElse(null);
 
         if (appUser == null) {
             log.error("User not found in db");
@@ -44,9 +54,10 @@ public class DataServiceImpl implements DataService, UserDetailsService {
             log.info("User {} found in db ", appUser.getUsername());
         }
 
-        Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        appUser.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getName())));
-        appUser.getRoles().forEach(role -> {
+        //add all authorities and permissions to list
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+        appUser.getRole().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getName())));
+        appUser.getRole().forEach(role -> {
             authorities.add(new SimpleGrantedAuthority(role.getName()));
             role.getAllowedPermissions().forEach(p -> {
                 if (!authorities.contains(new SimpleGrantedAuthority(p.getName()))) {
@@ -57,30 +68,111 @@ public class DataServiceImpl implements DataService, UserDetailsService {
                 }
             });
         });
+
+        log.info("authorities " + authorities);
+
         return new User(appUser.getUsername(), appUser.getPassword(), authorities);
     }
 
-
     @Override
-    public Models.AppUser saveAUser(Models.AppUser appUser) {
+    public Models.AppUser saveAUser(NewUserForm newUserForm) throws ParseException, NotFoundException {
 
+        Page<Models.AppUser> users = getAllUsers(new UserPredicate(newUserForm.getUsername()), PageRequest.of(0, 1));
 
-        if (getAllUsers(new UserPredicate(appUser.getUsername()), PageRequest.of(0, 1)).getContent().contains(appUser)) {
-            throw new DuplicateRequestException("User has already been created");
+        if (!users.isEmpty()) {
+            if (users.getContent().get(0).getUsername().equals(newUserForm.getUsername())) {
+                throw new DuplicateRequestException("User has already been created");
+            }
         }
 
-        appUser.setPassword(new BCryptPasswordEncoder(10).encode(appUser.getPassword()));
-        appUser.setCreatedAt(new Date());
-        log.info("Saving new user {} to db", appUser.getUsername());
-        return userRepo.save(appUser);
+
+        Models.AppUser newUser = new Models.AppUser(newUserForm.getName(), newUserForm.getUsername(), newUserForm.getEmailAddress(), passwordEncoder.encode(newUserForm.getPassword()));
+        newUser.setCreatedAt(getNowFormattedFullDate());
+        newUser.setUpdatedAt(getNowFormattedFullDate());
+        newUser.setDeleted(false);
+
+        log.info("Saving new user {} to db", newUser.getUsername());
+
+        Models.AppUser createdUser = userRepo.save(newUser);
+
+        if (newUserForm.getRole() != null) {
+
+            if (!newUserForm.getRole().isBlank()) {
+                if (!newUserForm.getRole().isEmpty()) {
+                    try {
+                        if (createdUser.getUsername() != null) {
+                            log.info("Now add role {} to user {}", newUserForm.getRole(), createdUser.getUsername());
+                            Thread.sleep(0);
+                            addARoleToAUser(createdUser.getUsername(), newUserForm.getRole());
+                        }
+                    } catch (NotFoundException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+        } else {
+            log.info("No role for user " + createdUser.getUsername());
+            try {
+                if (createdUser.getUsername() != null) {
+                    log.info("Now add role {} to user {}", newUserForm.getRole(), AppRolesEnum.ROLE_USER.name());
+                    Thread.sleep(0);
+                    addARoleToAUser(createdUser.getUsername(), newUserForm.getRole());
+                }
+            } catch (NotFoundException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        return newUser;
+    }
+
+    @Override
+    public Models.AppUser updateAUser(String username, UserUpdateForm updateForm) throws NotFoundException, ParseException {
+        Models.AppUser user = getAUser(username);
+
+        if (user == null) {
+            throw new UsernameNotFoundException(username + ", not found");
+        }
+
+        if (updateForm != null) {
+
+            if (updateForm.getRole() != null) {
+                addARoleToAUser(user.getUsername(), updateForm.getRole());
+            }
+
+            if (updateForm.getPassword() != null) {
+                user.setPassword(passwordEncoder.encode(updateForm.getPassword()));
+            }
+
+            if (updateForm.getEmailAddress() != null) {
+                user.setEmailAddress(updateForm.getEmailAddress());
+            }
+
+            if (updateForm.getName() != null) {
+                user.setName(updateForm.getName());
+            }
+
+            user.setUpdatedAt(getNowFormattedFullDate());
+
+        }
+
+        return userRepo.save(user);
     }
 
     @Override
     public Models.AppUser getAUser(String username) {
         log.info("Fetching user {} ", username);
-        return userRepo.findByUsername(username);
+        Optional<Models.AppUser> user = userRepo.findByUsername(username);
+        return user.orElse(null);
     }
 
+    @Override
+    public Models.AppUser toggleUserDeletion(Models.AppUser user) {
+        user.setDeleted(!user.isDeleted());
+        return userRepo.save(user);
+    }
 
     @Override
     public Page<Models.AppUser> getAllUsers(Specification<Models.AppUser> specification, PageRequest pageRequest) {
@@ -88,29 +180,67 @@ public class DataServiceImpl implements DataService, UserDetailsService {
         return userRepo.findAll(specification, pageRequest);
     }
 
-    //Role
     @Override
-    public Models.AppRole saveARole(Models.AppRole appRole) {
-        log.info("Saving new role {} to db", appRole.getName());
+    public Page<Models.AppUser> getAllUsers(PageRequest pageRequest) {
+        return userRepo.findAll(pageRequest);
+    }
 
-        if (getAllRoles().contains(appRole)) {
+    //Role
+    /*@Override
+    public Models.AppRole saveARole(String name) {
+        if (getARole(name) != null) {
             throw new DuplicateRequestException("Role has already been created");
+        } else {
+            log.info("Saving new role {} to db", name);
+            return roleRepo.save(new Models.AppRole(name));
         }
+    }*/
 
-        return GlobalRepositories.roleRepo.save(appRole);
+    @Override
+    public Models.AppRole saveANewRole(RoleCreationForm form) throws NotFoundException {
+        if (getARole(form.getName()) != null) {
+            throw new DuplicateRequestException("Role has already been created");
+        } else {
+            log.info("Saving new role {} to db", form.getName());
+
+            Models.AppRole role = roleRepo.save(new Models.AppRole(form.getName()));
+
+            return addPermissionListToARole(role.getName(), form.getAllowedPermissions());
+        }
+    }
+
+    @Override
+    public Set<Models.AppRole> saveRolesList(Set<RoleCreationForm> creationForms) {
+
+        Set<Models.AppRole> savedRoles = new HashSet<>();
+
+        creationForms.forEach(f -> {
+            try {
+                Models.AppRole role = saveANewRole(f);
+                if (role != null) {
+                    savedRoles.add(role);
+                }
+            } catch (DuplicateRequestException e) {
+                log.error("Role already added");
+            } catch (NotFoundException e) {
+                e.printStackTrace();
+                log.error("Failed to add role " + f.getName());
+            }
+        });
+        return savedRoles;
     }
 
     @Override
     public Models.AppRole getARole(String name) {
         log.info("Fetching role {} ", name);
-
-        return GlobalRepositories.roleRepo.findByName(name);
+        Optional<Models.AppRole> role = roleRepo.findByName(name);
+        return role.orElse(null);
     }
 
     @Override
     public List<Models.AppRole> getAllRoles() {
         log.info("Fetching all roles");
-        return GlobalRepositories.roleRepo.findAll();
+        return roleRepo.findAll();
     }
 
     @Override
@@ -118,61 +248,113 @@ public class DataServiceImpl implements DataService, UserDetailsService {
         Models.AppUser user = getAUser(username);
         Models.AppRole role = getARole(roleName);
 
-        if (user != null) {
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found " + username);
+        }
 
-            if (role != null) {
+        if (role == null) {
+            throw new NotFoundException("Role not found " + roleName);
+        }
 
-                if (!user.getRoles().contains(role)) {
-                    log.info("Adding role {} to user {}", user.getUsername(), role.getName());
-                    user.getRoles().add(role); //will save because @Transactional
-                } else {
+        if (user.getRole() != null) {
+            if (!user.getRole().isEmpty()) {
+                if (user.getRole().contains(role)) {
                     throw new DuplicateRequestException("User already has role " + role);
                 }
+
+                for (Models.AppRole dbRole : user.getRole()) { //should be only one
+
+                    if (dbRole.getName().equals(role.getName())) { //if role already added
+                        if (dbRole.getAllowedPermissions().isEmpty()) { //check if permissions is empty
+                            try {
+                                Set<String> permissionsList = Enum.valueOf(AppRolesEnum.class, role.getName()).getGrantedAuthorities().stream().filter(i -> !Objects.equals(i, DataOps.getGrantedAuthorityRole(role.getName()))).map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toSet());
+                                addPermissionListToARole(roleName, permissionsList);
+                            } catch (NotFoundException e) {
+                                e.printStackTrace();
+                            }
+                        } else {
+                            //do nothing
+                            log.info("No changes made for " + username);
+                        }
+                    } else { //role doesn't exists
+                        log.info("Adding role {} to seller {}", role.getName(), user.getUsername()); //will save because @Transactional
+                        user.getRole().clear();
+                        user.getRole().add(role);
+                    }
+
+                }
+
             } else {
-                throw new NotFoundException("Role not found " + roleName);
+                log.info("Adding role {} to seller {}", role.getName(), user.getUsername()); //will save because @Transactional
+                user.getRole().add(role);
             }
         } else {
-            throw new UsernameNotFoundException("User not found " + username);
+            log.info("Adding role {} to seller {}", role.getName(), user.getUsername()); //will save because @Transactional
+            user.getRole().add(role);
         }
     }
 
     @Override
     public Models.Permissions saveAPermission(Models.Permissions permissions) {
-        return appPermissionRepo.save(permissions);
+        if (getAllPermissions().stream().map(Models.Permissions::getName).collect(Collectors.toList()).contains(permissions.getName())) {
+            throw new DuplicateRequestException("Permission already in db");
+        } else {
+            return appPermissionRepo.save(permissions);
+        }
     }
 
     @Override
-    public void addAPermissionToARole(String roleName, Set<String> permissionList) throws NotFoundException {
+    public Models.AppRole addPermissionListToARole(String roleName, Set<String> permissionList) throws NotFoundException {
         Models.AppRole role = getARole(roleName);
-        Set<Models.Permissions> permissions = getAllPermissions().stream().filter(p -> permissionList.contains(p.getName())).collect(Collectors.toSet()); //permissions to add from db remove the ones // match names
-
-        if (role != null) {
-            role.getAllowedPermissions().addAll(permissions);
-        } else {
+        if (role == null) {
             throw new NotFoundException("Role not found " + roleName);
         }
 
+        //save permissions in db
+        Set<Models.Permissions> permissionsExistingInDb = getAllPermissions().stream().filter(p -> permissionList.contains(p.getName())).collect(Collectors.toSet()); //filter out present roles// match names
+        role.getAllowedPermissions().addAll(permissionsExistingInDb);
+
+        //save new permissions to db
+        Set<Models.Permissions> newPermissionsToAddT0List = new HashSet<>();
+        try {
+            permissionList.stream().filter(p -> !permissionsExistingInDb.contains(new Models.Permissions(p))).map(Models.Permissions::new).collect(Collectors.toSet()).forEach(p -> {
+                Models.Permissions newPermission = saveAPermission(p);
+                if (newPermission != null) {
+                    newPermissionsToAddT0List.add(newPermission);
+                }
+            });
+        } catch (DuplicateRequestException e) {
+            log.error("Permission already in db");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        role.getAllowedPermissions().addAll(newPermissionsToAddT0List);
+        return role;
     }
 
     @Override
-    public void addAPermissionToARole(String roleName, String permissionName) throws NotFoundException {
+    public Models.AppRole addAPermissionToARole(String roleName, String permissionName) throws NotFoundException {
         Models.AppRole role = getARole(roleName);
         Models.Permissions permissions = getAPermission(permissionName);
 
-        if (role != null) {
-            if (permissions != null) {
-                if (!role.getAllowedPermissions().contains(permissions)) {
-                    log.info("Adding permission {} to role {}", permissions.getName(), role.getName());
-                    role.getAllowedPermissions().add(permissions); //will save because @Transactional
-                } else {
-                    throw new DuplicateRequestException("Role " + roleName + " already has permission " + permissionName);
-                }
-            } else {
-                throw new NotFoundException("Permission not found " + permissionName + " for role " + roleName);
-            }
-        } else {
+        if (role == null) {
             throw new NotFoundException("Role not found " + roleName);
         }
+
+        if (permissions == null) {
+            throw new NotFoundException("Permission not found " + permissionName + " for role " + roleName);
+        }
+
+        if (role.getAllowedPermissions().contains(permissions)) {
+            throw new DuplicateRequestException("Role " + roleName + " already has permission " + permissionName);
+        }
+
+
+        log.info("Adding permission {} to role {}", permissions.getName(), role.getName());
+        role.getAllowedPermissions().add(permissions); //will save because @Transactional
+
+        return role;
     }
 
     @Override

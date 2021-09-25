@@ -57,14 +57,13 @@ public class TokenHelper {
         }
     }
 
-    public static void accessToken(HttpServletRequest request, HttpServletResponse response, Authentication authResult) throws IOException {
+    public static void successAuthFilterAccessToken(HttpServletRequest request, HttpServletResponse response, Authentication authResult) throws IOException {
         response.setContentType(APPLICATION_JSON_VALUE);
 
         log.info(request.getServletPath() + " login path");
 
-
-        String accessToken = JWT.create().withSubject(authResult.getName()).withExpiresAt(accessTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("authorities", authResult.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())).sign(myAlgorithm);
-        String refreshToken = JWT.create().withSubject(authResult.getName()).withExpiresAt(refreshTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("authorities", authResult.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())).sign(myAlgorithm);
+        String accessToken = JWT.create().withSubject(authResult.getName()).withExpiresAt(new Date(System.currentTimeMillis() + 10 * 1000)).withIssuer(request.getRequestURL().toString()).withClaim("authorities", authResult.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())).withJWTId("ACCESS").sign(myAlgorithm);
+        String refreshToken = JWT.create().withSubject(authResult.getName()).withExpiresAt(refreshTokenTIme).withIssuer(request.getRequestURL().toString()).withClaim("authorities", authResult.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())).withJWTId("REFRESH").sign(myAlgorithm);
 
         String authType = "Bearer ";
         String bearerToken = authType + accessToken;
@@ -123,7 +122,7 @@ public class TokenHelper {
         response.setStatus(FORBIDDEN.value());
 
         if (e instanceof TokenExpiredException) {
-            error.put("error", "Use refresh token");
+            error.put("error", "Token expired. Use refresh token or log in again");
         } else {
             error.put("error", e.getMessage());
         }
@@ -131,6 +130,7 @@ public class TokenHelper {
     }
 
 
+/*
     public static void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
         try {
@@ -165,6 +165,7 @@ public class TokenHelper {
         }
 
     }
+*/
 
 
 }

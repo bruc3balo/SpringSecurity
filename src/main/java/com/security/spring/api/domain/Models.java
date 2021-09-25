@@ -43,11 +43,15 @@ public class Models {
         @Column(updatable = false, name = "created_at")
         private Date createdAt;
 
+        @Column(name = "updated_at")
+        private Date updatedAt;
+
         @Column(name = "deleted")
         private boolean deleted;
 
         @ManyToMany(fetch = FetchType.EAGER) //anytime load user, load a role
-        private Set<AppRole> roles = new LinkedHashSet<>();
+        @Column(name = "role")
+        private Set<AppRole> role = new LinkedHashSet<>();
 
         public AppUser() {
 
@@ -62,13 +66,19 @@ public class Models {
             this.name = name;
         }
 
+        public AppUser(String name, String username, String emailAddress, String password) {
+            this.name = name;
+            this.username = username;
+            this.emailAddress = emailAddress;
+            this.password = password;
+        }
 
         public AppUser(String name, String username, String emailAddress, String password, boolean deleted, Set<AppRole> roles) {
             this.name = name;
             this.username = username;
             this.emailAddress = emailAddress;
             this.password = password;
-            this.roles = roles;
+            this.role = roles;
             this.deleted = deleted;
         }
     }
@@ -78,7 +88,7 @@ public class Models {
     @Getter
     @Setter
     @AllArgsConstructor
-    public static class AppRole{
+    public static class AppRole {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -87,7 +97,6 @@ public class Models {
         @Column(name = "name")
         @JsonProperty(value = "name")
         private String name;
-
 
         @ManyToMany(fetch = FetchType.EAGER)
         @Column(name = "permissions")
@@ -101,7 +110,10 @@ public class Models {
             this.name = name;
         }
 
-
+        public AppRole(String name, Set<Permissions> allowedPermissions) {
+            this.name = name;
+            this.allowedPermissions = allowedPermissions;
+        }
 
         /*public Set<GrantedAuthority> getGrantedAllowedPermissions() {
             return allowedPermissions.stream().map(permissions -> new SimpleGrantedAuthority(permissions.getName())).collect(Collectors.toSet());
@@ -112,7 +124,7 @@ public class Models {
     @Table(name = "permissions")
     @Getter
     @Setter
-    public static class Permissions{
+    public static class Permissions {
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
@@ -126,7 +138,6 @@ public class Models {
         public Permissions(String name) {
             this.name = name;
         }
-
 
 
     }
